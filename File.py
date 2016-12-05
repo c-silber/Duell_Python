@@ -11,7 +11,7 @@ class File:
         self.comp_score = tournament.get_computer_score()
         self.human_score = tournament.get_human_score()
         self.next_player = "Human"
-        if next_player == "Human":
+        if next_player == "Computer":
             self.next_player = "Computer"
 
     def write_to_file(self):

@@ -4,12 +4,15 @@
 #   Die Class
 ####################################################################
 class Die:
-    def __init__(self, top, right):
-        self.top = top
-        self.right = right
+    def __init__(self, top, right, active_player):
+        self.top = int(top)
+        self.right = int(right)
         self.key = False
-        if top == 1 and right == 1:
+        if int(top) == 1 and int(right) == 1:
             self.key = True
+
+        if active_player == "C":
+            self.right = 7 - self.right
 
     def roll_die(self, source_x, source_y, dest_x, dest_y, direction):
         frontal = abs(dest_x - source_x)
@@ -85,6 +88,9 @@ class Die:
 
             if (not up) and (temp_frontal % 2 != 0):
                 self.top = 7 - self.top
+        else:
+            self.top = 1
+            self.right = 1
 
     def get_lateral(self, lateral, right):
         if not self.key:
@@ -100,6 +106,9 @@ class Die:
                     self.right = 7 - left
                     self.top = temp
                 lateral -= 1
+        else:
+            self.top = 1
+            self.right = 1
 
     def get_top(self):
         return self.top

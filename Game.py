@@ -13,6 +13,7 @@ from Tournament import Tournament
 class Game:
     def __init__(self):
         self.activePlayer = ""
+        self.t = Tournament()
 
     def get_first_player(self):
         valid_spin = True
@@ -32,9 +33,6 @@ class Game:
                 valid_spin = True
 
     def begin_game(self, resume):
-        # create a new Tournament instance
-        t = Tournament()
-
         # playing is set to true until the user no longer wants to play
         playing = True
         while playing:
@@ -43,7 +41,7 @@ class Game:
 
             # if the user wanted to resume a previous game, restore the game state here
             if resume:
-                f = File(b, t, "")
+                f = File(b, self.t, "")
                 f.read_from_file()
                 self.activePlayer = f.get_next_player()
             else:
@@ -51,11 +49,10 @@ class Game:
 
             # print the board
             b.print_board()
-            self.take_turns(b, t)
+            self.play_game(b)
 
             # Once one player wins, update the tournament score and ask the user if they want to play another round
-            t.set_winner(self.activePlayer)
-            print("Active Player: " + self.activePlayer)
+            self.t.set_winner(self.activePlayer)
             play_again = True
             while play_again:
                 print(self.activePlayer + " won the round. Do you want to play again? y/n")
@@ -63,11 +60,11 @@ class Game:
                 if new_round == 'n' or new_round == 'N':
                     play_again = False
                     playing = False
-                    print("Computer Score: " + str(t.get_computer_score()))
-                    print("Human Score: " + str(t.get_human_score()))
-                    if t.get_computer_score() > t.get_human_score():
+                    print("Computer Score: " + str(self.t.get_computer_score()))
+                    print("Human Score: " + str(self.t.get_human_score()))
+                    if self.t.get_computer_score() > self.t.get_human_score():
                         print ("Computer has won the tournament")
-                    elif t.get_computer_score() < t.get_human_score():
+                    elif self.t.get_computer_score() < self.t.get_human_score():
                         print ("You have won the tournament!")
                     else:
                         print("Tie Tournament!")
@@ -76,75 +73,91 @@ class Game:
                     play_again = False
                     playing = True
 
-    def take_turns(self, b, t):
+    def play_game(self, b):
         # winner is initially set to false
         winner = False
         # loop until there is a winner
         while not winner:
-            print("Would you like to suspend the game? y/n")
-            suspend = input()
-            if suspend == 'Y' or suspend == 'y':
-                # Create an instance of the file class and write the existing board to the file
-                f = File(b, t, self.activePlayer)
-                f.write_to_file()
-                sys.exit()
-            elif suspend == 'N' or suspend == 'n':
-                # if the human player is active
-                if self.activePlayer == "Human":
-                    valid = False
-                    while not valid:
-                        # print("Would you like a suggestion? y/n")
-                        print("Choose a die to move...")
-                        print("    Row: ", end="")
-                        source_row = int(input())
-                        print ("    Column: ", end="")
-                        source_column = int(input())
-                        print("Choose the location to move to...")
-                        print("    Row: ", end="")
-                        dest_row = int(input())
-                        print("    Column: ", end="")
-                        dest_column = int(input())
-                        if b.validate_move(source_row, source_column, dest_row, dest_column):
-                            # if the move is valid, convert the source and destination
-                            source_row = b.convert_coordinate("row", source_row)
-                            source_column = b.convert_coordinate("column", source_column)
-                            dest_row = b.convert_coordinate("row", dest_row)
-                            dest_column = b.convert_coordinate("column", dest_column)
-                            top_die = b.get_top(source_row, source_column)
-                            right_die = b.get_right(source_row, source_column)
-                            if b.check_moves(source_row, source_column, dest_row, dest_column, "H"):
-                                d = Die(top_die, right_die)
-                                if b.valid_direction(source_row, source_column, dest_row, dest_column) == 'b':
-                                    print("Do you want to move frontally or laterally? ")
-                                    d.roll_die(source_row, source_column, dest_row, dest_column, direction=input())
-                                    b.update_board(source_row, source_column, dest_row, dest_column, d.get_top(),
-                                               d.get_right())
-                                else:
-                                    d.roll_die(source_row, source_column, dest_row, dest_column,
-                                               b.valid_direction(source_row, source_column, dest_row, dest_column))
-                                    b.update_board(source_row, source_column, dest_row, dest_column, d.get_top(),
-                                                   d.get_right())
-                                b.print_board()
-                                valid = True
+            self.suspend(b)
+            # if the human player is active
+            if self.activePlayer == "Human":
+                valid = False
+                while not valid:
+                    self.suggestion(b)
+                    print("Choose a die to move...")
+                    print("    Row: ", end="")
+                    source_row = int(input())
+                    print ("    Column: ", end="")
+                    source_column = int(input())
+                    print("Choose the location to move to...")
+                    print("    Row: ", end="")
+                    dest_row = int(input())
+                    print("    Column: ", end="")
+                    dest_column = int(input())
+                    if b.validate_move(source_row, source_column, dest_row, dest_column):
+                        # if the move is valid, convert the source and destination
+                        source_row = b.convert_coordinate("row", source_row)
+                        source_column = b.convert_coordinate("column", source_column)
+                        dest_row = b.convert_coordinate("row", dest_row)
+                        dest_column = b.convert_coordinate("column", dest_column)
+                        top_die = b.get_top(source_row, source_column)
+                        right_die = b.get_right(source_row, source_column)
+                        if b.check_moves(source_row, source_column, dest_row, dest_column, "H"):
+                            d = Die(top_die, right_die, self.activePlayer)
+                            if b.valid_direction(source_row, source_column, dest_row, dest_column) == 'b':
+                                print("Do you want to move frontally or laterally? ")
+                                d.roll_die(source_row, source_column, dest_row, dest_column, direction=input())
+                                b.update_board(source_row, source_column, dest_row, dest_column, d.get_top(),
+                                           d.get_right(), 'H')
                             else:
-                                print ("Invalid move. Try again")
-                    if self.check_win(b):
-                        winner = True
-                    else:
-                        self.activePlayer = "Computer"
-                # if the computer is active
+                                d.roll_die(source_row, source_column, dest_row, dest_column,
+                                           b.valid_direction(source_row, source_column, dest_row, dest_column))
+                                b.update_board(source_row, source_column, dest_row, dest_column, d.get_top(),
+                                               d.get_right(), 'H')
+                            b.print_board()
+                            valid = True
+                        else:
+                            print ("Invalid move. Try again")
+                if self.check_win(b):
+                    winner = True
                 else:
-                    # Computer takes a turn
-                    c = Computer(b, "C")
-                    c.get_moves()
-                    b.print_board()
-                    # Check if winner and return
-                    if self.check_win(b):
-                        winner = True
-                    else:
-                        self.activePlayer = "Human"
+                    self.activePlayer = "Computer"
+            # if the computer is active
             else:
-                continue
+                # Computer takes a turn
+                c = Computer(b, "C")
+                c.get_moves()
+                b.print_board()
+                # Check if winner and return
+                if self.check_win(b):
+                    winner = True
+                else:
+                    self.activePlayer = "Human"
+
+    def suspend(self, board):
+        print ("Would you like to suspend the game? y/n ", end="")
+        suspend = input()
+        if suspend == 'Y' or suspend == 'y':
+            # Create an instance of the file class and write the existing board to the file
+            f = File(board, self.t, self.activePlayer)
+            f.write_to_file()
+            sys.exit()
+        elif suspend == 'N' or suspend == 'n':
+            return
+        else:
+            suspend(board)
+
+    def suggestion(self, board):
+        print ("Would you like a suggestion? y/n ", end="")
+        suggest = input()
+        if suggest == 'Y' or suggest == 'y':
+            h = Computer(board, "H")
+            h.get_moves()
+            return
+        elif suggest == 'N' or suggest == 'n':
+            return
+        else:
+            self.suggestion(board)
 
     def check_win(self, b):
         active = "H"

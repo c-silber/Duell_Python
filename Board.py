@@ -33,7 +33,7 @@ class Board:
         self.table[row][column] = value
 
     def get_value(self, row, column):
-        return self.table[row][column]
+        return str(self.table[row][column])
 
     def get_top(self, row, column):
         return int(str(self.table[row][column])[1])
@@ -51,68 +51,48 @@ class Board:
                 print(str(self.table[i][j]).ljust(10), end="")
             print(" ")
 
-    def update_board(self, source_row, source_column, dest_row, dest_column, top, right):
+    def update_board(self, source_row, source_column, dest_row, dest_column, top, right, active):
         self.table[source_row][source_column] = "0"
-        self.table[dest_row][dest_column] = "H" + str(top) + str(right)
+        self.table[dest_row][dest_column] = active + str(top) + str(right)
+
+    def check_moves(self, source_row, source_column, dest_row, dest_column, active_player):
+        valid_move = self.get_moves(source_row, source_column, active_player)
+        if valid_move[dest_row][dest_column]:
+            return True
+        return False
 
     # gets all the moves for the active die - returns true if the source/dest are a valid combination, false otherwise
-    def check_moves(self, source_row, source_column, dest_row, dest_column, active_player):
+    def get_moves(self, source_row, source_column, active_player):
+        valid_moves = [[False for i in range(9)] for j in range(8)]
+
         self.active_user = str(self.table[source_row][source_column])[0]
         if active_player != self.active_user:
-            return False
+            return valid_moves
 
         top_die = int(str(self.table[source_row][source_column])[1])
-        right_die = int(str(self.table[source_row][source_column])[2])
-
-        count = 0
-
-        if self.check_dest(source_row + top_die, source_column) and (
-            self.frontal_path(source_row, source_column, source_row + top_die, source_column) or
-                self.lateral_path(source_row, source_column, source_row + top_die, source_column)):
-            if (source_row + top_die) == dest_row and dest_column == source_column:
-                return True
-
-        if self.check_dest(source_row - top_die, source_column) and (
-            self.frontal_path(source_row, source_column, source_row - top_die, source_column) or
-                self.lateral_path(source_row, source_column, source_row - top_die, source_column)):
-            if (source_row - top_die) == dest_row and dest_column == source_column:
-                return True
-
-        if self.check_dest(source_row, source_column + top_die) and (
-            self.frontal_path(source_row, source_column, source_row, source_column + top_die) or
-                self.lateral_path(source_row, source_column, source_row, source_column + top_die)):
-            if source_row == dest_row and dest_column == (source_column + top_die):
-                return True
-
-        if self.check_dest(source_row, source_column - top_die) and (
-            self.frontal_path(source_row, source_column, source_row, source_column - top_die) or
-                self.lateral_path(source_row, source_column, source_row, source_column - top_die)):
-            if source_row == dest_row and dest_column == (source_column - top_die):
-                return True
 
         top = top_die
         x = source_row
         y = source_column
 
-        #print("Starting at: " + str(source_row) + "," + str(source_column))
-        #print ("Looking for: " + str(dest_row) + "," + str(dest_column))
-        for i in reversed(range(1, top+1)):
+        # print("Starting at: " + str(source_row) + "," + str(source_column))
+        #print("TOP: " + str(top))
+
+        for i in reversed(range(1, top + 1)):
             #print("Checking: " + str(x - 1) + " and " + str(y + (i - 1)))
-            if self.check_dest(x - 1, y + (i - 1)) and (self.frontal_path(source_row, source_column, x - 1, y + (i - 1) or self.lateral_path(source_row, source_column, x - 1, y + (i - 1)))):
-                if (dest_row == x - 1) and (dest_column == y + (i - 1)):
-                    return True
+            if self.check_dest(x - 1, y + (i - 1))\
+                    and (self.frontal_path(source_row, source_column, x - 1, y + (i - 1)) or self.lateral_path(source_row, source_column, x - 1, y + (i - 1))):
+                valid_moves[x - 1][y + (i - 1)] = True
             x -= 1
 
         top = top_die
         x = source_row
         y = source_column
 
-        #print ("TOP: "  + str(top))
         for i in reversed(range(1, top + 1)):
-            #print("Checking: " + str(x - 1) + " and " + str(y - (i - 1)))
-            if self.check_dest(x - 1, y - (i - 1)) and (self.frontal_path(source_row, source_column, x - 1, y - (i - 1) or self.lateral_path(source_row, source_column, x - 1, y - (i - 1)))):
-                if (dest_row == x - 1) and (dest_column == y - (i - 1)):
-                    return True
+            if self.check_dest(x - 1, y - (i - 1)) \
+                    and (self.frontal_path(source_row, source_column, x - 1, y - (i - 1)) or self.lateral_path(source_row, source_column, x - 1, y - (i - 1))):
+                valid_moves[x - 1][y - (i - 1)] = True
             x -= 1
 
         top = top_die
@@ -122,9 +102,10 @@ class Board:
         #print ("TOP: "  + str(top))
         for i in reversed(range(1, top + 1)):
             #print("Checking: " + str(x + 1) + " and " + str(y + (i - 1)))
-            if self.check_dest(x + 1, y + (i - 1)) and (self.frontal_path(source_row, source_column, x + 1, y + (i - 1) or self.lateral_path(source_row, source_column, x + 1, y + (i - 1)))):
-                if (dest_row == x + 1) and (dest_column == y + (i - 1)):
-                    return True
+            if self.check_dest(x + 1, y + (i - 1))\
+                    and (self.frontal_path(source_row, source_column, x + 1, y + (i - 1)) or self.lateral_path(source_row, source_column, x + 1, y + (i - 1))):
+                #print ("FRONTAL " + str(self.frontal_path(source_row, source_column, x + 1, y + (i - 1))))
+                valid_moves[x + 1][y + (i - 1)] = True
             x += 1
 
         top = top_die
@@ -134,11 +115,31 @@ class Board:
         for i in reversed(range(1, top + 1)):
             #print("Checking: " + str(x + 1) + " and " + str(y - (i - 1)))
             if self.check_dest(x + 1, y - (i - 1)) and (self.frontal_path(source_row, source_column, x + 1, y - (i-1) or self.lateral_path(source_row, source_column, x + 1, y - (i - 1)))):
-                if (dest_row == x + 1) and (dest_column == y - (i - 1)):
-                    return True
+                valid_moves[x + 1][y - (i - 1)] = True
             x += 1
 
-        return False
+        if self.check_dest(source_row + top_die, source_column) and (
+                    self.frontal_path(source_row, source_column, source_row + top_die, source_column) and
+                    self.lateral_path(source_row, source_column, source_row + top_die, source_column)):
+            valid_moves[source_row + top_die][source_column] = True
+
+        if self.check_dest(source_row - top_die, source_column) and (
+                    self.frontal_path(source_row, source_column, source_row - top_die, source_column) and
+                    self.lateral_path(source_row, source_column, source_row - top_die, source_column)):
+            valid_moves[source_row - top_die][source_column] = True
+
+        if self.check_dest(source_row, source_column + top_die) and (
+                    self.frontal_path(source_row, source_column, source_row, source_column + top_die) and
+                    self.lateral_path(source_row, source_column, source_row, source_column + top_die)):
+            valid_moves[source_row][source_column + top_die] = True
+
+
+        if self.check_dest(source_row, source_column - top_die) and (
+                    self.frontal_path(source_row, source_column, source_row, source_column - top_die) and
+                    self.lateral_path(source_row, source_column, source_row, source_column - top_die)):
+            valid_moves[source_row][source_column - top_die] = True
+
+        return valid_moves
 
     def check_dest(self, x, y):
         if x > 7 or x < 0 or y > 8 or y < 0 or str(self.table[x][y])[0] == self.active_user:
@@ -146,7 +147,7 @@ class Board:
         return True
 
     def check_partial(self, x, y):
-        if x > 7 or x < 0 or y > 8 or y < 0 or self.table[x][y] != 0:
+        if x > 7 or x < 0 or y > 8 or y < 0 or str(self.table[x][y]) != "0":
             return False
         else:
             return True
@@ -163,7 +164,7 @@ class Board:
             return 'l'
 
     def frontal_path(self, source_row, source_column, dest_row, dest_column):
-        up = (source_row > dest_column)
+        up = (source_row > dest_row)
         right = (source_column < dest_column)
 
         if up:
@@ -242,13 +243,13 @@ class Board:
     # make sure that the source co-ordinates and dest co-ordinates are within the realm of the board
     @staticmethod
     def validate_move(source_row, source_column, dest_row, dest_column):
-        if source_row > 9 or source_row < 1:
+        if source_row > 10 or source_row < 1:
             print ("Source row needs to be between 1-9")
             return False
-        if dest_row > 9 or dest_row < 1:
+        if dest_row > 10 or dest_row < 1:
             print ("Destination row needs to be between 1-9")
             return False
-        if source_column > 8 or source_column < 1:
+        if source_column > 9 or source_column < 1:
             print ("Source column needs to be between 1-8")
             return False
         if dest_column > 9 or dest_column < 1:
